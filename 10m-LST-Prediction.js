@@ -1243,8 +1243,11 @@ print("Check the Console for results and the Layers panel for visualizations.");
 print("Export tasks are available in the Tasks tab.");
 
 /** ===============================================================================================
- * © 2025
+ * @ 2025
  * Zidd's note:
  * The result of 8 months of pain, caffeine, and emotional damage.
+ * There's a github repo for the source code in 
+ * https://github.com/itsZidd/gee-lst-10m-prediction
+ * please give it a star if this script help you. Thanks :)
 ================================================================================================
 */
