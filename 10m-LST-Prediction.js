@@ -451,10 +451,9 @@ function createLandCoverMaps(indicesImage) {
 
 function processTopographicData() {
   var elevation = COLLECTIONS.dem
-    .select('b1')
+    .select('elevation')
     .clip(roi)
     .unmask(0)
-    .rename('elevation');
 
   // Use more efficient operations
   var slope = ee.Terrain.slope(elevation)
