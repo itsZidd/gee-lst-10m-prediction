@@ -11,8 +11,8 @@
 var CONFIG = {
   // Temporal parameters
   dates: {
-    start: "2024-5-01",
-    end: "2024-9-30",
+    start: "yyyy-mm-dd",
+    end: "yyyy-mm-dd",
   },
 
   // Model parameters
