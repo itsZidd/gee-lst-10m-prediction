@@ -1,3 +1,22 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Copyright 2025 Muhammad Zidan Malik
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // =======================================================================================================
 //                           LAND SURFACE TEMPERATURE 10 METER RESOLUTION PREDICTION
 //                               USING MACHINE LEARNING RANDOM FOREST REGRESSION
@@ -29,7 +48,7 @@ var CONFIG = {
     maxPixels: 1e13,
     focalRadius: 10,
     tileSize: 256,
-    parallel: true
+    parallel: true,
   },
 
   // Units and labels
@@ -63,21 +82,21 @@ var CONFIG = {
     "greeness",
     "dryness",
   ],
-  
+
   // Validation settings
   validation: {
     errorThreshold: 2, // °C
-    minR2: 0.7
+    minR2: 0.7,
   },
-  
+
   // Export settings
   export: {
     maxPixels: 1e13,
     cloudOptimized: true,
     formatOptions: {
-      noData: 0
-    }
-  }
+      noData: 0,
+    },
+  },
 };
 
 // Visualization parameters
@@ -90,14 +109,31 @@ var VIS_PARAMS = {
 
   // Updated color gradients for better perceptual separation
   rdylgn: ["#a50026", "#fdae61", "#ffffbf", "#a6d96a", "#1a9850"],
-  rdbl: ["#a50026", "#d73027", "#f46d43", "#fdae61", "#fee090", "#e0f3f8", "#91bfdb", "#4575b4", "#313695"],
+  rdbl: [
+    "#a50026",
+    "#d73027",
+    "#f46d43",
+    "#fdae61",
+    "#fee090",
+    "#e0f3f8",
+    "#91bfdb",
+    "#4575b4",
+    "#313695",
+  ],
 
   uhi: {
     min: -2,
     max: 2,
     palette: [
-      "#313695", "#4575b4", "#74add1", "#fed976", "#feb24c",
-      "#fd8d3c", "#fc4e2a", "#e31a1c", "#b10026"
+      "#313695",
+      "#4575b4",
+      "#74add1",
+      "#fed976",
+      "#feb24c",
+      "#fd8d3c",
+      "#fc4e2a",
+      "#e31a1c",
+      "#b10026",
     ],
   },
 
@@ -155,10 +191,10 @@ function cloudMaskLandsat(image) {
  */
 function cloudMaskS2(image) {
   var mask = image.select("cs").gt(0.6);
-  return image.select(['B2', 'B3', 'B4', 'B8', 'B11', 'B12']).updateMask(mask);
+  return image.select(["B2", "B3", "B4", "B8", "B11", "B12"]).updateMask(mask);
 }
 function scaleBands(image) {
-  var opticalBands = image.select(['B2', 'B3', 'B4', 'B8', 'B11', 'B12']);
+  var opticalBands = image.select(["B2", "B3", "B4", "B8", "B11", "B12"]);
   return image.addBands(opticalBands.divide(10000), null, true);
 }
 
@@ -194,12 +230,12 @@ function createElevationStrata(elevation) {
     reducer: ee.Reducer.percentile([0, 20, 40, 60, 80, 100]),
     geometry: roi,
     scale: CONFIG.processing.scale,
-    maxPixels: CONFIG.processing.maxPixels
+    maxPixels: CONFIG.processing.maxPixels,
   });
-  
+
   // Convert dictionary to sorted list
   var breaks = ee.List(quantiles.values()).sort();
-  
+
   // Create empty image for stratification
   var strat = ee.Image(0);
 
@@ -207,7 +243,7 @@ function createElevationStrata(elevation) {
   for (var i = 0; i < 5; i++) {
     var lowerBreak = ee.Number(breaks.get(i));
     var upperBreak = ee.Number(breaks.get(i + 1));
-    
+
     if (i === 0) {
       // First class
       strat = strat.where(elevation.lte(upperBreak), 1);
@@ -217,7 +253,7 @@ function createElevationStrata(elevation) {
     } else {
       // Middle classes
       strat = strat.where(
-        elevation.gt(lowerBreak).and(elevation.lte(upperBreak)), 
+        elevation.gt(lowerBreak).and(elevation.lte(upperBreak)),
         i + 1
       );
     }
@@ -303,9 +339,10 @@ function loadSatelliteData() {
  */
 function calculateSpectralIndices(s2Image) {
   var indices = [
-     {
+    {
       name: "BSI",
-      formula: "((RED + SWIR1) - (NIR + BLUE)) / ((RED + SWIR1) + (NIR + BLUE))",
+      formula:
+        "((RED + SWIR1) - (NIR + BLUE)) / ((RED + SWIR1) + (NIR + BLUE))",
       palette: VIS_PARAMS.rdylgn,
     },
     {
@@ -318,7 +355,7 @@ function calculateSpectralIndices(s2Image) {
       formula: "(GREEN - NIR) / (GREEN + NIR)",
       palette: VIS_PARAMS.rdbl,
     },
-     {
+    {
       name: "MNDWI1",
       formula: "(GREEN - SWIR1) / (GREEN + SWIR1)",
       palette: VIS_PARAMS.rdbl,
@@ -450,30 +487,26 @@ function createLandCoverMaps(indicesImage) {
  */
 
 function processTopographicData() {
-  var elevation = COLLECTIONS.dem
-    .select('elevation')
-    .clip(roi)
-    .unmask(0)
+  var elevation = COLLECTIONS.dem.select("elevation").clip(roi).unmask(0);
 
   // Use more efficient operations
-  var slope = ee.Terrain.slope(elevation)
-    .reproject({
-      crs: elevation.projection(),
-      scale: CONFIG.processing.scale
-    });
+  var slope = ee.Terrain.slope(elevation).reproject({
+    crs: elevation.projection(),
+    scale: CONFIG.processing.scale,
+  });
 
   // Optimize memory usage in elevation strata calculation
   var elevationStrata = createElevationStrata(elevation)
     .reproject({
       crs: elevation.projection(),
-      scale: CONFIG.processing.scale
+      scale: CONFIG.processing.scale,
     })
     .uint8(); // Use smaller data type
-    
+
   return {
     elevation: elevation,
     slope: slope,
-    elevationStrata: elevationStrata
+    elevationStrata: elevationStrata,
   };
 }
 
@@ -566,13 +599,13 @@ function performFeatureSelection(sample) {
       .byFeature(correlationMatrixTable, "main_variable", list)
       .setChartType("Table")
       .setOptions({
-        title: 'Correlation Matrix Between Top Features',
+        title: "Correlation Matrix Between Top Features",
         allowHtml: true,
         cssClassNames: {
-          headerRow: 'large-font',
-          tableRow: 'large-font',
-          oddTableRow: 'large-font'
-        }
+          headerRow: "large-font",
+          tableRow: "large-font",
+          oddTableRow: "large-font",
+        },
       });
     print(correlationMatrixChart);
   });
@@ -726,15 +759,13 @@ function trainAndValidateModel(sample, selectedFeatures) {
 
   // Create a list of features from keys and relative importance
   var features = ee.FeatureCollection(
-    keys
-      .zip(relative)
-      .map(function (pair) {
-        pair = ee.List(pair);
-        return ee.Feature(null, {
-          feature: pair.get(0),
-          importance: pair.get(1),
-        });
-      })
+    keys.zip(relative).map(function (pair) {
+      pair = ee.List(pair);
+      return ee.Feature(null, {
+        feature: pair.get(0),
+        importance: pair.get(1),
+      });
+    })
   );
 
   // Create a bar chart using ui.Chart.feature.byFeature()
@@ -844,7 +875,7 @@ function validateModel(test, model, selectedFeatures) {
       hAxis: { title: "Error (" + CONFIG.unit + ")" },
       vAxis: { title: "Frequency" },
       legend: { position: "none" },
-      colors: ['#FFA500']
+      colors: ["#FFA500"],
     });
   print(errorHistogram);
 
@@ -860,7 +891,7 @@ function validateModel(test, model, selectedFeatures) {
       hAxis: { title: "Absolute Error (" + CONFIG.unit + ")" },
       vAxis: { title: "Frequency" },
       legend: { position: "none" },
-      colors: ['#FFA500']
+      colors: ["#FFA500"],
     });
   print(absErrorHistogram);
 
@@ -1070,7 +1101,7 @@ function setupExports(lstPrediction, heatIndices) {
   exportImageToDrive(heatIndices.utfvi, "UTFVI_Continuous", "GEE_LST_Results", {
     fileNamePrefix: "UTFVI_Continuous",
   });
-  
+
   print("Export tasks have been created. Check the Tasks tab to run them.");
 }
 
@@ -1187,40 +1218,55 @@ function generateSummaryReport(modelResults, heatIndices) {
   var rmseValue = modelResults.validation.rmse;
 
   // Performance classification based on R²
-  var r2Class = ee.String(ee.Algorithms.If(
-    r2Value.gt(0.90), "Very Good (R² > 0.90)",
+  var r2Class = ee.String(
     ee.Algorithms.If(
-      r2Value.gt(0.80), "Good (R² 0.80-0.90)",
+      r2Value.gt(0.9),
+      "Very Good (R² > 0.90)",
       ee.Algorithms.If(
-        r2Value.gt(0.70), "Average (R² 0.70-0.80)",
-        "Poor (R² < 0.70)"
+        r2Value.gt(0.8),
+        "Good (R² 0.80-0.90)",
+        ee.Algorithms.If(
+          r2Value.gt(0.7),
+          "Average (R² 0.70-0.80)",
+          "Poor (R² < 0.70)"
+        )
       )
     )
-  ));
+  );
 
   // Performance classification based on MAE
-  var maeClass = ee.String(ee.Algorithms.If(
-    maeValue.lt(1), "Very Good (MAE < 1°C)",
+  var maeClass = ee.String(
     ee.Algorithms.If(
-      maeValue.lt(2), "Good (MAE 1-2°C)",
+      maeValue.lt(1),
+      "Very Good (MAE < 1°C)",
       ee.Algorithms.If(
-        maeValue.lt(3), "Average (MAE 2-3°C)",
-        "Poor (MAE > 3°C)"
+        maeValue.lt(2),
+        "Good (MAE 1-2°C)",
+        ee.Algorithms.If(
+          maeValue.lt(3),
+          "Average (MAE 2-3°C)",
+          "Poor (MAE > 3°C)"
+        )
       )
     )
-  ));
+  );
 
   // Performance classification based on RMSE
-  var rmseClass = ee.String(ee.Algorithms.If(
-    rmseValue.lt(1.5), "Very Good (RMSE < 1.5°C)",
+  var rmseClass = ee.String(
     ee.Algorithms.If(
-      rmseValue.lt(2.5), "Good (RMSE 1.5-2.5°C)",
+      rmseValue.lt(1.5),
+      "Very Good (RMSE < 1.5°C)",
       ee.Algorithms.If(
-        rmseValue.lt(3.5), "Average (RMSE 2.5-3.5°C)",
-        "Poor (RMSE > 3.5°C)"
+        rmseValue.lt(2.5),
+        "Good (RMSE 1.5-2.5°C)",
+        ee.Algorithms.If(
+          rmseValue.lt(3.5),
+          "Average (RMSE 2.5-3.5°C)",
+          "Poor (RMSE > 3.5°C)"
+        )
       )
     )
-  ));
+  );
 
   // Modify print statements to show only classifications without numbers
   print("--- Model Performance ---");
